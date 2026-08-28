@@ -1,0 +1,23 @@
+# Scheduling self-check-in-ai on a Linux server (2 of 2: the timer).
+#
+# sudo cp systemd.example.timer /etc/systemd/system/self-check-in-ai-sweep.timer
+# sudo systemctl daemon-reload
+# sudo systemctl enable --now self-check-in-ai-sweep.timer
+# systemctl list-timers | grep self-check-in-ai
+
+[Unit]
+Description=Run self-check-in-ai's pre-arrival sweep hourly
+
+[Timer]
+OnCalendar=*:00
+
+# Catch up after a reboot or a maintenance window instead of skipping.
+Persistent=true
+
+# Stagger the start so several agents on one box do not all wake together.
+RandomizedDelaySec=60
+
+Unit=self-check-in-ai-sweep.service
+
+[Install]
+WantedBy=timers.target

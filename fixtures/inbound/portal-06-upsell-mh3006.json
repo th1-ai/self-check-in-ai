@@ -1,0 +1,8 @@
+{
+  "event_id": "evt-06-upsell-mh3006",
+  "res_ref": "MH-3006",
+  "kind": "upsell",
+  "slug": "spa-ritual",
+  "confirmed": true,
+  "at": "2026-09-01T12:15:00+00:00"
+}

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Scheduling self-check-in-ai on a Mac. This example covers the pre-arrival
+  sweep (tools/run.py, hourly). Copy it again for the portal-sync job
+  (tools/portal_sync.py --once, every 15 minutes) with a different Label.
+
+  launchd is better than cron on a laptop: it catches up after the machine
+  wakes instead of silently skipping the run.
+
+  1. Replace {{REPO_PATH}} with the output of `pwd` in this folder.
+  2. Save as ~/Library/LaunchAgents/ai.th1.self-check-in-ai-sweep.plist
+  3. launchctl load ~/Library/LaunchAgents/ai.th1.self-check-in-ai-sweep.plist
+  4. launchctl list | grep self-check-in-ai
+  To stop:  launchctl unload ~/Library/LaunchAgents/ai.th1.self-check-in-ai-sweep.plist
+
+  `make schedule ARGS="--target launchd"` prints this with the paths filled in.
+-->
+<plist version="1.0">
+  <dict>
+    <key>Label</key>
+    <string>ai.th1.self-check-in-ai-sweep</string>
+
+    <key>ProgramArguments</key>
+    <array>
+      <string>/bin/sh</string>
+      <string>-c</string>
+      <string>cd {{REPO_PATH}} &amp;&amp; {{REPO_PATH}}/.venv/bin/python tools/run.py --once</string>
+    </array>
+
+    <!-- Hourly. Use StartCalendarInterval instead for a fixed time. -->
+    <key>StartInterval</key>
+    <integer>3600</integer>
+
+    <key>WorkingDirectory</key>
+    <string>{{REPO_PATH}}</string>
+
+    <key>StandardOutPath</key>
+    <string>{{REPO_PATH}}/data/logs/launchd.log</string>
+    <key>StandardErrorPath</key>
+    <string>{{REPO_PATH}}/data/logs/launchd.err</string>
+
+    <!-- Do not fire immediately on load: run it by hand first. -->
+    <key>RunAtLoad</key>
+    <false/>
+  </dict>
+</plist>

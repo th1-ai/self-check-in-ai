@@ -1,0 +1,32 @@
+# Scheduling self-check-in-ai with cron (Linux, and macOS if the machine
+# stays awake).
+#
+# Install:  crontab -e     then paste the lines you want.
+# Check:    crontab -l
+# Logs:     tail -f {{REPO_PATH}}/data/logs/cron.log
+#
+# The jobs below are exactly what this command prints for this agent - one
+# entry per job under `schedule:` in config/agent.yaml, with its own real
+# command and cadence:
+#
+#     make schedule ARGS="--all"
+#
+# Re-run that command (and paste its output here) any time config/agent.yaml's
+# schedule: block changes - do not hand-edit the cadences below and expect
+# them to stay in sync. `make schedule` on its own (or with --command/
+# --cadence) generates one snippet for any single command you name instead:
+#
+#     make schedule ARGS="--cadence every-15-min"
+#     make schedule ARGS="--command 'tools/run.py --once' --cadence every-15-min"
+#
+# cron starts with almost no environment, so every path below MUST be
+# absolute. Replace {{REPO_PATH}} with the output of `pwd` in this folder.
+
+# job: sweep  cadence: 0 * * * *  (from config/agent.yaml schedule.sweep)
+0 * * * * cd {{REPO_PATH}} && {{REPO_PATH}}/.venv/bin/python tools/run.py --once >> {{REPO_PATH}}/data/logs/cron.log 2>&1
+
+# job: portal_sync  cadence: */15 * * * *  (from config/agent.yaml schedule.portal_sync)
+*/15 * * * * cd {{REPO_PATH}} && {{REPO_PATH}}/.venv/bin/python tools/portal_sync.py --once >> {{REPO_PATH}}/data/logs/cron.log 2>&1
+
+# Start in shadow mode. Only add a schedule after you have watched a few real
+# passes by hand and worked the review queue.

@@ -1,0 +1,37 @@
+# Scheduling self-check-in-ai on a Linux server (1 of 2: the service).
+# This example covers the pre-arrival sweep (tools/run.py, hourly). Copy it
+# again for the portal-sync job (tools/portal_sync.py --once, every 15
+# minutes) with a different unit name.
+#
+# 1. Replace {{REPO_PATH}} with the repo path and {{RUN_USER}} with the user
+#    that owns it. Never root.
+# 2. sudo cp systemd.example.service /etc/systemd/system/self-check-in-ai-sweep.service
+# 3. sudo cp systemd.example.timer   /etc/systemd/system/self-check-in-ai-sweep.timer
+# 4. sudo systemctl daemon-reload && sudo systemctl enable --now self-check-in-ai-sweep.timer
+#
+# Watch it:  journalctl -u self-check-in-ai-sweep.service -f
+# Run once:  sudo systemctl start self-check-in-ai-sweep.service
+
+[Unit]
+Description=self-check-in-ai - one pass of the pre-arrival sweep
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User={{RUN_USER}}
+WorkingDirectory={{REPO_PATH}}
+ExecStart={{REPO_PATH}}/.venv/bin/python tools/run.py --once
+
+# The agent only ever writes inside its own data/ folder.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths={{REPO_PATH}}/data
+PrivateTmp=true
+
+# Do not let a stuck run pile up.
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target

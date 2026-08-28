@@ -1,0 +1,108 @@
+# ---------------------------------------------------------------------------
+# agent.yaml - Self Check-In AI's own knobs. `make setup` copies this to
+# config/agent.yaml; edit that copy, this example stays as a clean reference.
+#
+# Two loops share this file: the pre-arrival sweep (tools/run.py, invite /
+# chase / skip - deterministic, see docs/how-it-works.md) and the portal sync
+# leg (tools/portal_sync.py, reads back what the guest did in your check-in
+# portal). Every send, every PMS write and every door-code message still goes
+# through mode: shadow / review.require_approval_for in config/hotel.yaml -
+# nothing here loosens that. See docs/safety.md.
+# ---------------------------------------------------------------------------
+
+# --- Which systems this agent actually reads/writes through core/adapters ---
+# The sweep reads reservations through the PMS adapter, and every invite,
+# follow-up and door-code notice goes out through the email adapter (both in
+# tools/checkin.py). Nothing in tools/ ever calls the messaging adapter: the
+# portal completion events arrive as a JSONL file (see
+# docs/integrations.md#guest-check-in-portal), not through an adapter, and an
+# escalation stays in the review queue for a person to work. So messaging is
+# left out here on purpose - systems.messaging.adapter staying `mock` must
+# never trigger the "SAMPLE DATA" warning. Listing pms/email still warns you
+# correctly if THOSE are left on mock once you are running for real.
+systems_used: [pms, email]
+
+# Where the invite/follow-up link points. This repo does not build the guest
+# portal itself - see docs/how-it-works.md "Scope" and
+# docs/integrations.md#guest-check-in-portal. Point this at your own portal's
+# base URL; the reservation reference is appended, e.g.
+# https://checkin.example.com/MH-3001.
+portal_base_url: "https://checkin.example.com"
+
+# The windows the sweep uses. Defaults match the source engine this was built
+# from - see docs/how-it-works.md.
+windows:
+  invite_window_days: 30    # send the invite once arrival is inside this window
+  chase_window_days: 5      # chase an unfinished check-in inside this window
+  chase_cooldown_days: 2    # never more than one nudge per this many days
+  room_ready_hour: 14       # smart-lock rooms are "ready", and codes activate, at this hour
+  desk_minutes_saved: 6     # for tools/report.py's "desk minutes saved" line
+
+# The six switches from the source engine. Each is `enabled: true|false` plus
+# label/detail text purely for your own notes - tools/sweep.py only reads
+# `enabled`. Turning `invite-window-30` off is the easiest way to see the
+# sweep change behaviour without touching a date - the two guests that would
+# have been invited move to "skip: automatic invites are off by rule".
+rules:
+  invite-window-30:
+    enabled: true
+    label: "Automatic invites"
+    detail: "Send the check-in link once a stay is inside the invite window."
+  follow-up-5:
+    enabled: true
+    label: "Automatic follow-ups"
+    detail: "Chase an unfinished check-in once arrival is inside the chase window."
+  require-id:
+    enabled: true
+    label: "Require ID in the portal"
+    detail: "Off where local law requires an in-person check - the portal still
+      preps everything else and leaves that one step to staff."
+  card-mode-preauth:
+    enabled: true
+    label: "Preauthorize prepaid stays"
+    detail: "A prepaid stay gets a EUR 0 card check instead of a charge; a
+      balance-due stay always collects the balance plus city tax."
+  upsells-after-checkin:
+    enabled: true
+    label: "Show upsells after check-in"
+    detail: "Off sends the guest straight to the done screen with no upsell page."
+  door-code-auto:
+    enabled: true
+    label: "Automatic door codes"
+    detail: "Compute and queue a door-code message for smart-lock rooms once a
+      guest completes check-in on their arrival day."
+
+# The upsell catalogue. Amounts are in `hotel.currency` (config/hotel.yaml).
+# `tools/portal_sync.py` looks a slug up here when it logs a `folio_charge`
+# event so the report can show what sold, not just how much.
+upsells:
+  - slug: wine-in-room
+    title: "A bottle of house red, waiting in the room"
+    price: 38
+  - slug: spa-ritual
+    title: "Signature spa ritual, 60 minutes"
+    price: 120
+  - slug: sunrise-yoga
+    title: "Sunrise yoga on the terrace"
+    price: 25
+  - slug: late-checkout
+    title: "Guaranteed late checkout, 2pm"
+    price: 40
+
+# Never sends or writes on its own - see docs/how-it-works.md and
+# docs/safety.md. This documents the fact for tools/report.py; the real gate
+# is mode: shadow/live plus review.require_approval_for in config/hotel.yaml.
+autonomy: draft
+
+# --- Schedule ----------------------------------------------------------------
+# Every recurring job this agent runs, with what to run and how often.
+# `python3 tools/schedule.py --all` prints one ready-to-install snippet per
+# entry (cron by default; --target launchd|systemd for the others) - see
+# scheduler/ and README.md section 9.
+schedule:
+  sweep:
+    command: "tools/run.py --once"
+    cadence: "0 * * * *"        # hourly - invite/chase decisions are not time-critical
+  portal_sync:
+    command: "tools/portal_sync.py --once"
+    cadence: "*/15 * * * *"     # every 15 minutes - guests expect a prompt door code

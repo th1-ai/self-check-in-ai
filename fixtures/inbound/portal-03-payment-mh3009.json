@@ -1,0 +1,8 @@
+{
+  "event_id": "evt-03-payment-mh3009",
+  "res_ref": "MH-3009",
+  "kind": "payment",
+  "result": "authorized",
+  "amount": 0,
+  "at": "2026-09-01T10:07:00+00:00"
+}

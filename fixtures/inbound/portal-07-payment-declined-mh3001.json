@@ -1,0 +1,8 @@
+{
+  "event_id": "evt-07-payment-mh3001",
+  "res_ref": "MH-3001",
+  "kind": "payment",
+  "result": "declined",
+  "amount": 246.0,
+  "at": "2026-09-01T13:00:00+00:00"
+}

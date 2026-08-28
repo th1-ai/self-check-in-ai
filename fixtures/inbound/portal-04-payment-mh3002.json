@@ -1,0 +1,8 @@
+{
+  "event_id": "evt-04-payment-mh3002",
+  "res_ref": "MH-3002",
+  "kind": "payment",
+  "result": "charged",
+  "amount": 399.0,
+  "at": "2026-09-01T11:20:00+00:00"
+}
